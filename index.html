@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Manager Clash</title>
+
+<!-- ===== PWA با Cache Busting ===== -->
+<link rel="manifest" href="manifest.json?v=2.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Manager Clash">
+<link rel="apple-touch-icon" href="icon-192.png?v=2.0">
+<meta name="theme-color" content="#c90000">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+body{width:100%;height:100vh;overflow:hidden;font-family:Arial,sans-serif;background:#000;}
+
+/* ===== BORDER ===== */
+.screen{
+position:absolute;
+width:100%;
+height:100%;
+background:radial-gradient(circle at top,#ffffff33,transparent 35%),linear-gradient(rgba(0,60,0,.3),rgba(0,0,0,.8)),linear-gradient(90deg,#064d14,#0b8b25,#063b12);
+border:8px solid;
+border-image:linear-gradient(45deg,#000 0%,#000 20%,#fff 30%,#fff 70%,#000 80%,#000 100%);
+border-image-slice:1;
+overflow:hidden;
+}
+
+/* ===== BOTTOM BANNER ===== */
+#bottomBanner{
+position:absolute;
+bottom:60px;
+left:50%;
+transform:translateX(-50%);
+width:90%;
+max-width:500px;
+height:0;
+background:rgba(0,0,0,0.7);
+border:2px solid gold;
+border-radius:12px;
+overflow:hidden;
+transition:height 0.5s cubic-bezier(0.34,1.56,0.64,1);
+z-index:20;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:16px;
+font-weight:bold;
+color:#ffd700;
+text-shadow:0 0 10px rgba(255,215,0,0.3);
+}
+#bottomBanner.open{
+height:45px;
+}
+#bottomBanner .banner-text{
+opacity:0;
+transition:opacity 0.4s ease;
+}
+#bottomBanner.open .banner-text{
+opacity:1;
+}
+#bottomBanner.hidden{
+display:none !important;
+}
+
+/* ===== FIRE RANK LOGO ===== */
+.rankFire{
+background:#1a1a1a !important;
+border-color:#ff4400 !important;
+color:#ff6600 !important;
+animation:fireGlow 0.8s ease-in-out infinite alternate;
+text-shadow:0 0 20px #ff4400,0 0 40px #ff2200 !important;
+}
+@keyframes fireGlow{
+0%{box-shadow:0 0 10px #ff4400,inset 0 0 10px #ff4400;}
+100%{box-shadow:0 0 30px #ff6600,inset 0 0 30px #ff6600;}
+}
+
+/* ===== RANK 1 GRAY WITH BLACK LINE ===== */
+.rankGrayBlack{
+background:linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%) !important;
+color:#fff !important;
+border-color:#888 !important;
+text-shadow:0 0 10px rgba(0,0,0,0.9),0 0 5px rgba(0,0,0,0.8) !important;
+font-weight:900 !important;
+}
+
+/* ===== ROMARIO EVENT COLOR ===== */
+.rankOrangeStriped{
+background:repeating-linear-gradient(45deg,#ff6600 0px,#ff6600 10px,#fff 10px,#fff 20px) !important;
+color:#000 !important;
+border-color:#ff6600 !important;
+text-shadow:0 0 5px rgba(255,255,255,0.5) !important;
+font-weight:900 !important;
+}
+
+/* ===== REST OF STYLES ===== */
+#loading{background:#c90000;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:100;}
+#title{font-size:28px;color:white;margin-bottom:30px;border:2px solid white;padding:12px 35px;border-radius:20px;animation:glow 0.8s ease-in-out infinite alternate;box-shadow:0 0 25px rgba(255,215,0,0.2);font-weight:700;letter-spacing:2px;text-shadow:0 0 15px rgba(255,215,0,0.15);}
+@keyframes glow{0%{opacity:1;text-shadow:0 0 15px rgba(255,215,0,0.4);}100%{opacity:0.5;text-shadow:0 0 5px rgba(255,215,0,0.1);}}
+.loader{width:80%;height:25px;border:3px solid white;border-radius:30px;overflow:hidden;}
+#bar{height:100%;width:0%;background:gold;}
+#percent{margin-top:20px;color:white;font-size:25px;}
+#game{display:none;}
+#hud{position:absolute;top:10px;left:15px;display:flex;flex-direction:column;align-items:flex-start;gap:5px;z-index:10;}
+#hudRight{position:absolute;top:10px;right:15px;display:flex;flex-direction:column;align-items:center;}
+.hudBtn{padding:4px 12px;border-radius:8px;border:1px solid gold;background:#111;color:white;font-size:11px;cursor:pointer;font-weight:bold;text-align:center;min-width:60px;}
+.hudBtn.online{background:green;border-color:lime;}
+.hudBtn.offline{background:red;border-color:#ff4444;}
+#ping{padding:5px 12px;border-radius:15px;border:2px solid green;background:#111;font-size:13px;color:white;}
+#gameName{margin-top:5px;padding:5px 12px;border-radius:12px;background:#111;border:2px solid gold;font-size:14px;font-weight:bold;font-style:italic;color:#ffd700;animation:glow 0.8s ease-in-out infinite alternate;box-shadow:0 0 20px rgba(255,215,0,0.2);}
+#settings{margin-top:8px;padding:6px 12px;border-radius:12px;background:#222;border:1px solid gold;color:white;font-size:13px;cursor:pointer;}
+#menu{position:absolute;top:52%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:18px;z-index:5;}
+.menuBtn{width:190px;padding:16px;text-align:center;color:white;font-size:22px;font-weight:bold;border-radius:18px;background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(0,0,0,.5));border:2px solid gold;box-shadow:0 0 15px #000;cursor:pointer;transition:.2s;}
+.menuBtn:active,.back:active,.pageBtn:active,.shopBtn:active,.incomeBtn:active{transform:scale(.9);}
+.friendBtn{width:190px;padding:16px;text-align:center;font-size:22px;font-weight:bold;border-radius:18px;background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(0,0,0,.5));border:2px solid gold;box-shadow:0 0 15px #000;cursor:pointer;transition:.2s;}
+.friendBtn.green{color:lime;}
+.friendBtn.red{color:red;}
+.friendBtn:active{transform:scale(.9);}
+.page{display:none;color:white;z-index:15;}
+.center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.box{background:rgba(0,0,0,.55);border:2px solid gold;border-radius:20px;padding:25px;box-shadow:0 0 20px #000;}
+.pageTitle{font-size:30px;color:gold;margin-bottom:25px;}
+.pageBtn{width:220px;padding:15px;margin:10px;border-radius:18px;background:#222;border:2px solid gold;color:white;font-size:20px;cursor:pointer;}
+.resetInput{padding:15px;width:220px;border-radius:15px;text-align:center;font-size:18px;}
+.resetBtn{width:220px;padding:15px;margin-top:15px;border-radius:18px;background:#700;border:2px solid red;color:white;font-size:20px;cursor:pointer;}
+.rankBox{width:250px;padding:15px;margin:10px;border-radius:18px;color:white;font-size:20px;border:2px solid white;text-shadow:0 0 10px rgba(0,0,0,0.8),0 0 5px rgba(0,0,0,0.9);font-weight:bold;}
+.incomeBtn{width:220px;padding:15px;margin:10px;border-radius:18px;background:#222;border:2px solid gold;color:white;font-size:20px;cursor:pointer;}
+.moneyBox{background:rgba(0,0,0,.6);border:2px solid gold;border-radius:18px;padding:20px;font-size:22px;}
+.teamContainer{width:85%;height:85%;overflow:auto;scrollbar-width:none;-ms-overflow-style:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.teamContainer::-webkit-scrollbar{display:none;}
+.playerRow{display:flex;justify-content:center;align-items:center;gap:10px;margin:10px;cursor:pointer;}
+.playerRow .playerBox{cursor:pointer;}
+.playerNumber{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#222;border:2px solid gold;color:white;font-weight:bold;}
+.playerBox{width:220px;padding:15px;border-radius:18px;background:rgba(0,0,0,.6);border:2px solid gold;color:white;box-shadow:0 0 15px #000;font-weight:bold;text-shadow:0 0 10px rgba(0,0,0,0.8);}
+.line{width:80%;height:2px;background:white;margin:20px auto;}
+.shopBtn{width:220px;padding:15px;margin:10px;border-radius:18px;background:#222;border:2px solid gold;color:white;font-size:20px;cursor:pointer;}
+.onlineBox{background:rgba(0,0,0,.55);border:2px solid gold;border-radius:18px;padding:25px;font-size:22px;}
+.back{position:absolute;bottom:15px;left:15px;width:55px;height:55px;border-radius:50%;background:#222;border:2px solid gold;display:flex;align-items:center;justify-content:center;font-size:28px;color:white;cursor:pointer;z-index:30;}
+#register{display:none;position:absolute;width:100%;height:100%;background:#111;align-items:center;justify-content:center;flex-direction:column;color:white;z-index:100;}
+input{padding:15px;width:80%;border-radius:10px;font-size:18px;text-align:center;}
+button{margin-top:20px;padding:12px 30px;border-radius:10px;background:gold;border:none;font-size:18px;cursor:pointer;}
+.sellRed{background:#700 !important;border:2px solid red !important;color:white !important;}
+.buyGrid{display:flex;flex-wrap:wrap;justify-content:center;gap:15px;margin:20px 0;}
+.buyCard{width:200px;padding:20px;border-radius:18px;border:2px solid gold;color:white;font-weight:bold;font-size:18px;text-align:center;text-shadow:0 0 10px rgba(0,0,0,0.8),0 0 5px rgba(0,0,0,0.9);cursor:pointer;}
+.buyCard:hover{transform:scale(1.05);transition:0.2s;}
+.rankBlue{background:#0055ff !important;}
+.rankGreen{background:#00cc44 !important;}
+.rankPink{background:#ff69b4 !important;}
+.rankRed{background:red !important;}
+.rankYellow{background:#c9a600 !important;}
+.rankBrown{background:#8B6914 !important;}
+.rankBlack{background:#1a1a1a !important;border-color:#444 !important;}
+.rankGold{background:#c9a600 !important;}
+.rankDarkBlack{background:#0a0a0a !important;border-color:#333 !important;color:#fff !important;}
+.matchPlayer{padding:12px;margin:8px;border-radius:12px;background:rgba(0,0,0,.6);border:2px solid gold;color:white;font-size:16px;cursor:default;font-weight:bold;text-shadow:0 0 10px rgba(0,0,0,0.8);}
+.matchPlayer.selectable{cursor:pointer;}
+.matchPlayer.selectable:hover{transform:scale(1.02);transition:0.2s;}
+.matchResult{font-size:24px;padding:15px;border-radius:18px;margin:10px;}
+.resultWin{background:green;color:white;}
+.resultLose{background:red;color:white;}
+.resultDraw{background:#222;color:white;}
+.playerCard{width:220px;padding:15px;border-radius:18px;border:2px solid gold;color:white;font-weight:bold;text-shadow:0 0 10px rgba(0,0,0,0.8);margin:10px auto;}
+.swapGrid{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:10px 0;}
+.swapCard{width:180px;padding:10px;border-radius:12px;border:2px solid gold;color:white;font-weight:bold;text-shadow:0 0 10px rgba(0,0,0,0.8);cursor:pointer;margin:5px;}
+.swapCard:hover{transform:scale(1.05);transition:0.2s;}
+.eventRule{font-size:18px;color:white;margin:8px 0;text-shadow:0 0 10px rgba(0,0,0,0.8);}
+.sellInput{padding:12px;width:200px;border-radius:10px;text-align:center;font-size:18px;margin:10px 0;}
+.autoDisplay{font-size:18px;color:#ffd700;margin:10px 0;}
+.timerDisplay{font-size:72px;color:gold;font-weight:bold;text-shadow:0 0 30px rgba(255,215,0,0.5);margin:30px 0;}
+.packPrice{font-size:22px;color:white;margin:10px 0;}
+</style>
+</head>
+<body oncontextmenu="return false">
+
+<div id="loading" class="screen">
+    <div id="title">Manager Clash</div>
+    <div class="loader"><div id="bar"></div></div>
+    <div id="percent">0%</div>
+</div>
+
+<div id="register">
+    <h2>Create Account</h2>
+    <input id="name" placeholder="English Name">
+    <button onclick="createAccount()">Continue</button>
+</div>
+
+<div id="game" class="screen">
+    <div id="hud">
+        <div class="hudBtn" onclick="openNews()">News</div>
+        <div class="hudBtn" onclick="openProfile()">Profile</div>
+        <div class="hudBtn" onclick="openEvents()">Events</div>
+        <div id="connectionStatus" class="hudBtn online" onclick="checkConnection()">Online</div>
+    </div>
+    <div id="hudRight">
+        <div id="ping">PING: 10</div>
+        <div id="gameName">Manager Clash</div>
+        <div id="settings">Settings</div>
+    </div>
+    <div id="menu">
+        <div class="menuBtn" onclick="openTeam()">TEAM</div>
+        <div class="menuBtn" onclick="openShop()">SHOP</div>
+        <div class="menuBtn" onclick="openIncome()">INCOME</div>
+        <div class="menuBtn" id="rankMenuBtn" onclick="openRank()" style="color:lime;">RANK</div>
+        <div id="friendMainBtn" class="friendBtn green" onclick="openFriends()">Play with friends</div>
+    </div>
+</div>
+
+<!-- ===== BOTTOM BANNER ===== -->
+<div id="bottomBanner"><span class="banner-text"></span></div>
+
+<div id="settingsPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Settings</div>
+        <div class="pageBtn" onclick="openInfo()">Information</div>
+        <div class="pageBtn" onclick="openRedeem()">Redeem Code</div>
+        <div class="pageBtn" onclick="openOnline()">Online Players</div>
+        <div class="pageBtn" onclick="openAccount()">Account</div>
+        <div class="pageBtn" onclick="openReset()">Reset</div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="accountPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Account</div>
+        <div class="pageBtn" onclick="showAccountName()">Account Name</div>
+        <div class="pageBtn" onclick="openAccountTransfer()">Download & Upload Account</div>
+    </div></div>
+    <div class="back" onclick="backSettings()">◀</div>
+</div>
+
+<div id="accountNamePage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Account Name</div>
+        <div class="moneyBox">Your Account Name: <span id="accountNameDisplay">Guest</span></div>
+    </div></div>
+    <div class="back" onclick="backAccount()">◀</div>
+</div>
+
+<div id="accountTransferPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Download & Upload Account</div>
+        <div class="pageBtn" onclick="downloadAccount()" style="background:green;border-color:lime;">Download</div>
+        <div class="pageBtn" onclick="uploadAccount()" style="background:#700;border-color:red;">Upload</div>
+    </div></div>
+    <div class="back" onclick="backAccount()">◀</div>
+</div>
+
+<div id="downloadPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Download Account</div>
+        <div class="pageBtn" onclick="copyAccountCode()" style="background:#0066cc;border-color:#00ccff;">Copy Account</div>
+        <div class="pageBtn" onclick="shareAccountCode()" style="background:#ff6b00;border-color:#ffaa00;">Share Account</div>
+    </div></div>
+    <div class="back" onclick="backAccountTransfer()">◀</div>
+</div>
+
+<div id="uploadPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Upload Account</div>
+        <input id="uploadInput" placeholder="Paste Account Code Here">
+        <div class="pageBtn" onclick="uploadAccountCode()" style="margin-top:15px;background:#700;border-color:red;">Upload</div>
+    </div></div>
+    <div class="back" onclick="backAccountTransfer()">◀</div>
+</div>
+
+<div id="resetPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Reset Game</div>
+        <div class="infoBox">Are you sure?</div>
+        <input class="resetInput" id="resetAnswer" placeholder="yes / no">
+        <div class="resetBtn" onclick="resetGame()">RESET</div>
+    </div></div>
+    <div class="back" onclick="backSettings()">◀</div>
+</div>
+
+<div id="incomePage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">INCOME</div>
+        <div class="incomeBtn" onclick="openBalance()">Balance</div>
+        <div class="incomeBtn" onclick="openAddMoney()">Add Money</div>
+        <div class="incomeBtn" onclick="openAutoIncrease()">Auto Increase</div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="balancePage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Balance</div>
+        <div class="moneyBox">Your Balance : <span id="balanceValue">10</span></div>
+    </div></div>
+    <div class="back" onclick="backIncome()">◀</div>
+</div>
+
+<div id="addMoneyPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Add Money</div>
+        <div class="pageBtn" onclick="addMoney()" style="background:green;border-color:lime;">Add</div>
+    </div></div>
+    <div class="back" onclick="backIncome()">◀</div>
+</div>
+
+<div id="autoIncreasePage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Auto Increase</div>
+        <div id="autoBtn" class="pageBtn" onclick="toggleAuto()" style="background:red;border-color:#ff4444;">OFF</div>
+        <div id="autoDisplay" class="autoDisplay"></div>
+    </div></div>
+    <div class="back" onclick="backIncomeAuto()">◀</div>
+</div>
+
+<div id="infoPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Information</div>
+        <div class="infoBox">
+            <div>Game Version : 1.6</div>
+            <hr style="border-color:#555;margin:8px 0;">
+            <div>Developer : Amirhossein Shamsian</div>
+            <hr style="border-color:#555;margin:8px 0;">
+            <div>Country : Iran</div>
+            <hr style="border-color:#555;margin:8px 0;">
+            <div>Season : 2</div>
+            <hr style="border-color:#555;margin:8px 0;">
+            <div>Season Name : <span style="color:#ff6600;font-weight:bold;">Romario</span></div>
+        </div>
+    </div></div>
+    <div class="back" onclick="backSettings()">◀</div>
+</div>
+
+<div id="redeemPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Redeem Code</div>
+        <input id="redeemInput" placeholder="Enter Code">
+        <div class="pageBtn" onclick="redeemCode()" style="margin-top:15px;">Redeem</div>
+    </div></div>
+    <div class="back" onclick="backSettings()">◀</div>
+</div>
+
+<div id="onlinePage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Online Players</div>
+        <div class="onlineBox">Players Online : <span id="onlineCount">44</span></div>
+    </div></div>
+    <div class="back" onclick="backSettings()">◀</div>
+</div>
+
+<div id="newsPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">News</div>
+        <div class="pageBtn" onclick="openNewsDetail('1.5')">1.5</div>
+        <div class="pageBtn" onclick="openNewsDetail('1.6')">1.6</div>
+        <div class="pageBtn" onclick="openNewsDetail('1.7')">1.7</div>
+        <div id="newsContent" style="margin-top:15px;font-size:18px;color:white;"></div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="teamPage" class="screen page">
+    <div class="teamContainer"><div class="box">
+        <div class="pageTitle">TEAM</div>
+        <div id="players"></div>
+        <div class="line"></div>
+        <div class="pageTitle">SUBSTITUTES</div>
+        <div id="subs"></div>
+        <div class="pageBtn sellRed" onclick="openSellPlayer()">Sell Player</div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="playerDetailPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Player Detail</div>
+        <div id="playerDetailDisplay"></div>
+        <div class="pageBtn" onclick="openSwapMode()" style="margin-top:15px;background:#0066cc;border-color:#00ccff;">Swap Position</div>
+    </div></div>
+    <div class="back" onclick="backTeam()">◀</div>
+</div>
+
+<div id="swapPage" class="screen page">
+    <div class="teamContainer"><div class="box">
+        <div class="pageTitle">Swap Position</div>
+        <div id="swapPlayers"></div>
+    </div></div>
+    <div class="back" onclick="backPlayerDetail()">◀</div>
+</div>
+
+<div id="sellPlayerPage" class="screen page">
+    <div class="teamContainer"><div class="box">
+        <div class="pageTitle">Sell Player</div>
+        <div id="sellPlayers"></div>
+    </div></div>
+    <div class="back" onclick="backTeam()">◀</div>
+</div>
+
+<div id="sellConfirmPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Sell Player</div>
+        <div id="sellConfirmDisplay"></div>
+        <input class="sellInput" id="sellAnswer" placeholder="yes / no">
+        <div class="pageBtn" onclick="confirmSell()" style="margin-top:15px;background:#700;border-color:red;">Confirm</div>
+    </div></div>
+    <div class="back" onclick="backSell()">◀</div>
+</div>
+
+<div id="shopPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">SHOP</div>
+        <div class="shopBtn" onclick="openBuyPlayer()">Buy Player</div>
+        <div class="shopBtn" onclick="openBestRank()">Best Players Rank</div>
+        <div class="shopBtn" onclick="openPack()">Open Pack</div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="buyPlayerPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Buy Player</div>
+        <div id="buyGrid" class="buyGrid"></div>
+        <div class="pageBtn" onclick="nextBuyPage()" style="margin-top:20px;">Next Page</div>
+    </div></div>
+    <div class="back" onclick="backShop()">◀</div>
+</div>
+
+<div id="playerBuyDetailPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Player Detail</div>
+        <div id="playerBuyDetailDisplay"></div>
+        <div class="pageBtn" onclick="buyPlayer()" style="margin-top:15px;background:green;border-color:lime;">Buy Player?</div>
+    </div></div>
+    <div class="back" onclick="backBuyPlayer()">◀</div>
+</div>
+
+<div id="packPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Open Pack</div>
+        <div class="pageBtn" onclick="showPackChances()" style="background:#0066cc;border-color:#00ccff;">Pack Chances</div>
+        <div class="pageBtn" onclick="openPackOpen()" style="margin-top:10px;background:green;border-color:lime;">Open Pack</div>
+    </div></div>
+    <div class="back" onclick="backShop()">◀</div>
+</div>
+
+<div id="packChancesPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Pack Chances</div>
+        <div id="chancesDisplay" style="font-size:18px;color:white;text-align:left;margin:10px 0;"></div>
+    </div></div>
+    <div class="back" onclick="backPack()">◀</div>
+</div>
+
+<div id="packOpenPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Open Pack</div>
+        <div class="packPrice">Pack Price: 250,000</div>
+        <div class="packPrice">Your Balance: <span id="packBalance">10</span></div>
+        <div class="pageBtn" onclick="openPackPull()" style="margin-top:15px;background:green;border-color:lime;">Pull Pack</div>
+    </div></div>
+    <div class="back" onclick="backPack()">◀</div>
+</div>
+
+<div id="packResultPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Pack Result</div>
+        <div id="packResultDisplay" style="font-size:22px;color:white;margin:20px 0;"></div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="bestRankPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Best Players Rank</div>
+        <div class="rankBox rankGrayBlack">Rank 1</div>
+        <div class="rankBox rankGreen">Rank 2</div>
+        <div class="rankBox rankPink">Rank 3</div>
+        <div class="rankBox rankRed">Rank 4</div>
+        <div class="rankBox rankYellow">Rank 5</div>
+        <div style="width:80%;height:2px;background:white;margin:20px auto;"></div>
+        <div style="font-size:24px;color:gold;margin:10px 0;">Events :</div>
+        <div class="rankBox rankOrangeStriped">Rank 1</div>
+        <div class="rankBox rankDarkBlack">Rank 2</div>
+    </div></div>
+    <div class="back" onclick="backShop()">◀</div>
+</div>
+
+<div id="eventsPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Events</div>
+        <div id="cruyffBtn" class="pageBtn" onclick="openCruyffDetail()" style="background:#0a0a0a;border-color:#333;color:white;">JOHAN CRUYFF</div>
+        <div id="romarioBtn" class="pageBtn" onclick="openRomarioDetail()" style="background:repeating-linear-gradient(45deg,#ff6600 0px,#ff6600 10px,#fff 10px,#fff 20px);border-color:#ff6600;color:#000;font-weight:900;margin-top:10px;">ROMARIO</div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="cruyffDetailPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">JOHAN CRUYFF</div>
+        <div class="eventRule">1. At least 3 players in team</div>
+        <div class="eventRule">2. Balance more than 65,000</div>
+        <div class="eventRule">3. Rank above 900</div>
+        <div class="eventRule">4. Empty slot in team</div>
+        <div id="cruyffCreateBtn" class="pageBtn" onclick="createCruyff()" style="background:red;border-color:#ff4444;">CREATE PLAYER</div>
+    </div></div>
+    <div class="back" onclick="backEvents()">◀</div>
+</div>
+
+<div id="romarioDetailPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">ROMARIO</div>
+        <div class="eventRule">1. Balance more than 575,000</div>
+        <div class="eventRule">2. Empty slot in team</div>
+        <div id="romarioCreateBtn" class="pageBtn" onclick="createRomario()" style="background:red;border-color:#ff4444;">CREATE PLAYER</div>
+    </div></div>
+    <div class="back" onclick="backEvents()">◀</div>
+</div>
+
+<div id="rankPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">RANK</div>
+        <div class="pageBtn" onclick="openCheckRank()">Check Rank</div>
+        <div class="pageBtn" onclick="openRankMatch()">Rank Match</div>
+        <div class="pageBtn" onclick="openRankLogo()">Rank Logos</div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="friendsPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Play with friends</div>
+        <div class="pageBtn" onclick="friendComingSoon()">Friend List</div>
+        <div class="pageBtn" onclick="friendComingSoon()">Friend Request</div>
+        <div class="pageBtn" onclick="friendComingSoon()">Your Friend Code</div>
+        <div class="pageBtn" onclick="friendComingSoon()">Play</div>
+    </div></div>
+    <div class="back" onclick="backMain()">◀</div>
+</div>
+
+<div id="checkRankPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Check Rank</div>
+        <div id="rankDisplay" class="rankBox" style="width:280px;">Your Rank : <span id="playerRank">10</span></div>
+    </div></div>
+    <div class="back" onclick="backRank()">◀</div>
+</div>
+
+<div id="rankMatchPage" class="screen page">
+    <div class="teamContainer"><div class="box">
+        <div class="pageTitle">Rank Match</div>
+        <div id="matchPlayers"></div>
+        <div id="matchResultDisplay" style="display:none;"></div>
+    </div></div>
+    <div class="back" onclick="backRank()">◀</div>
+</div>
+
+<div id="rankMatchTimerPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Searching for opponent...</div>
+        <div id="matchTimerDisplay" class="timerDisplay">1</div>
+    </div></div>
+    <div class="back" onclick="backRank()">◀</div>
+</div>
+
+<div id="rankLogoPage" class="screen page">
+    <div class="center"><div class="box">
+        <div class="pageTitle">Rank Logos</div>
+        <div class="rankBox rankBrown">Rank 10 - 350</div>
+        <div class="rankBox rankYellow">Rank 350 - 700</div>
+        <div class="rankBox rankRed">Rank 700 - 1100</div>
+        <div class="rankBox rankBlack">Rank 1100 - 1400</div>
+        <div class="rankBox rankGreen">Rank 1400 - 2600</div>
+        <div class="rankBox rankBlue">Rank 2600 - 4500</div>
+        <div class="rankBox rankFire">Rank 4500 - 8500</div>
+    </div></div>
+    <div class="back" onclick="backRank()">◀</div>
+</div>
+
+<script>
+// ===== SOUND SYSTEM =====
+let audioContext;
+function clickSound(){
+    if(!audioContext) audioContext = new AudioContext();
+    try{
+        let osc = audioContext.createOscillator();
+        let gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = 600;
+        gain.gain.value = 0.04;
+        osc.start();
+        osc.stop(audioContext.currentTime + 0.1);
+    }catch(e){}
+}
+
+function winSound(){
+    try{
+        if(!audioContext) audioContext = new AudioContext();
+        let osc = audioContext.createOscillator();
+        let gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = 880;
+        gain.gain.value = 0.06;
+        osc.start();
+        setTimeout(()=>{
+            let osc2 = audioContext.createOscillator();
+            let gain2 = audioContext.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioContext.destination);
+            osc2.frequency.value = 1100;
+            gain2.gain.value = 0.06;
+            osc2.start();
+            osc2.stop(audioContext.currentTime + 0.15);
+        },120);
+        osc.stop(audioContext.currentTime + 0.15);
+    }catch(e){}
+}
+
+function loseSound(){
+    try{
+        if(!audioContext) audioContext = new AudioContext();
+        let osc = audioContext.createOscillator();
+        let gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = 300;
+        gain.gain.value = 0.06;
+        osc.start();
+        osc.stop(audioContext.currentTime + 0.3);
+    }catch(e){}
+}
+
+function drawSound(){
+    try{
+        if(!audioContext) audioContext = new AudioContext();
+        let osc = audioContext.createOscillator();
+        let gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = 500;
+        gain.gain.value = 0.05;
+        osc.start();
+        setTimeout(()=>{
+            let osc2 = audioContext.createOscillator();
+            let gain2 = audioContext.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioContext.destination);
+            osc2.frequency.value = 700;
+            gain2.gain.value = 0.05;
+            osc2.start();
+            osc2.stop(audioContext.currentTime + 0.12);
+        },100);
+        osc.stop(audioContext.currentTime + 0.15);
+    }catch(e){}
+}
+
+// ===== MUSIC =====
+let backgroundMusic = new Audio("music.mp3");
+backgroundMusic.loop = true;
+backgroundMusic.volume = 0.2;
+function startMusic(){
+    backgroundMusic.play().catch(()=>{});
+}
+
+// ===== LOADING - 2 SECONDS =====
+var bar = document.getElementById("bar");
+var percent = document.getElementById("percent");
+var loading = document.getElementById("loading");
+var progress = 0;
+var totalTime = 2000;
+var stepTime = 20;
+
+var loadInterval = setInterval(function(){
+    progress++;
+    var pct = Math.min(100, Math.round((progress * 100) / 100));
+    bar.style.width = pct + "%";
+    percent.innerHTML = pct + "%";
+    if(progress >= 100){
+        clearInterval(loadInterval);
+        loading.style.display = "none";
+        start();
+    }
+}, stepTime);
+
+// ===== START =====
+function start(){
+    var acc = localStorage.getItem("managerAccount");
+    if(acc){
+        openGame();
+    }else{
+        document.getElementById("register").style.display = "flex";
+    }
+}
+
+function createAccount(){
+    var n = document.getElementById("name").value;
+    if(!/^[a-zA-Z0-9]+$/.test(n)){
+        alert("English only");
+        return;
+    }
+    localStorage.setItem("managerAccount", n);
+    openGame();
+}
+
+function openGame(){
+    document.getElementById("register").style.display = "none";
+    document.getElementById("game").style.display = "block";
+    startMusic();
+    checkConnection();
+    startBanner();
+    updateRankButtonColor();
+    updateFriendButtonColor();
+}
+
+// ===== BANNER =====
+var bannerMessages = [
+    "Enjoy the game",
+    "Best football strategy game",
+    "Play. Buy. Become a champion.",
+    "New players added weekly",
+    "Special events coming soon",
+    "Rank up and earn rewards",
+    "Build your dream team",
+    "Challenge your friends online",
+    "Season 2: Romario is here"
+];
+var bannerIndex = 0;
+var bannerInterval = null;
+var bannerTimeout = null;
+
+function startBanner(){
+    var banner = document.getElementById("bottomBanner");
+    var text = banner.querySelector(".banner-text");
+    if(bannerInterval) clearInterval(bannerInterval);
+    if(bannerTimeout) clearTimeout(bannerTimeout);
+    banner.classList.remove("hidden");
+    bannerIndex = 0;
+    showBanner();
+}
+
+function stopBanner(){
+    var banner = document.getElementById("bottomBanner");
+    if(bannerTimeout) clearTimeout(bannerTimeout);
+    if(bannerInterval) clearInterval(bannerInterval);
+    banner.classList.remove("open");
+    banner.classList.add("hidden");
+}
+
+function showBanner(){
+    var banner = document.getElementById("bottomBanner");
+    var text = banner.querySelector(".banner-text");
+    text.textContent = bannerMessages[bannerIndex];
+    banner.classList.add("open");
+    bannerTimeout = setTimeout(function(){
+        banner.classList.remove("open");
+        bannerTimeout = setTimeout(function(){
+            bannerIndex = (bannerIndex + 1) % bannerMessages.length;
+            showBanner();
+        }, 2000);
+    }, 2000);
+}
+
+// ===== CONNECTION CHECK =====
+function checkConnection(){
+    var status = document.getElementById("connectionStatus");
+    if(navigator.onLine){
+        status.className = "hudBtn online";
+        status.innerHTML = "Online";
+    }else{
+        status.className = "hudBtn offline";
+        status.innerHTML = "Offline";
+    }
+    updateRankButtonColor();
+    updateFriendButtonColor();
+}
+
+window.addEventListener("online", function(){
+    checkConnection();
+});
+window.addEventListener("offline", function(){
+    checkConnection();
+});
+
+// ===== RANK BUTTON COLOR =====
+function updateRankButtonColor(){
+    var btn = document.getElementById("rankMenuBtn");
+    if(navigator.onLine){
+        btn.style.color = "lime";
+    }else{
+        btn.style.color = "red";
+    }
+}
+
+// ===== FRIEND BUTTON COLOR =====
+function updateFriendButtonColor(){
+    var btn = document.getElementById("friendMainBtn");
+    if(navigator.onLine){
+        btn.className = "friendBtn green";
+    }else{
+        btn.className = "friendBtn red";
+    }
+}
+
+// ===== PROFILE =====
+function openProfile(){
+    clickSound();
+    alert("Coming soon");
+}
+
+// ===== FRIENDS =====
+function openFriends(){
+    clickSound();
+    if(!navigator.onLine){
+        alert("No internet connection");
+        return;
+    }
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("friendsPage").style.display = "block";
+}
+
+function friendComingSoon(){
+    clickSound();
+    alert("Coming soon");
+}
+
+// ===== OPEN RANK =====
+function openRank(){
+    clickSound();
+    if(!navigator.onLine){
+        alert("No internet connection");
+        return;
+    }
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("rankPage").style.display = "block";
+}
+
+// ===== NEWS =====
+function openNews(){
+    clickSound();
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("newsPage").style.display = "block";
+    document.getElementById("newsContent").innerHTML = "";
+}
+
+function openNewsDetail(version){
+    clickSound();
+    var content = document.getElementById("newsContent");
+    if(version == "1.5"){
+        content.innerHTML = "1. New players added<br>2. Bug fixes<br>3. Johan Cruyff event";
+    }else if(version == "1.6"){
+        content.innerHTML = "1. New players added<br>2. Important bug fixes<br>3. Romario event<br>4. New designs";
+    }else if(version == "1.7"){
+        content.innerHTML = "Waiting for update";
+    }
+}
+
+// ===== EVENTS =====
+function openEvents(){
+    clickSound();
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("eventsPage").style.display = "block";
+}
+
+// ===== CRUYFF EVENT =====
+function openCruyffDetail(){
+    clickSound();
+    document.getElementById("eventsPage").style.display = "none";
+    document.getElementById("cruyffDetailPage").style.display = "block";
+    updateCruyffButton();
+}
+
+function updateCruyffButton(){
+    var btn = document.getElementById("cruyffCreateBtn");
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var allPlayers = players.concat(subs);
+    var playerCount = 0;
+    var hasEmpty = false;
+    var hasCruyff = false;
+    for(var i = 0; i < allPlayers.length; i++){
+        if(allPlayers[i] != "EMPTY"){
+            playerCount++;
+            if(allPlayers[i] == "JOHAN CRUYFF") hasCruyff = true;
+        }else{
+            hasEmpty = true;
+        }
+    }
+    var balance = parseInt(localStorage.getItem("balance")) || 10;
+    var rank = parseInt(localStorage.getItem("playerRank")) || 10;
+    var canBuy = (balance >= 65000 && playerCount >= 3 && hasEmpty && rank >= 900 && !hasCruyff);
+    if(canBuy){
+        btn.style.background = "green";
+        btn.style.borderColor = "lime";
+    }else{
+        btn.style.background = "red";
+        btn.style.borderColor = "#ff4444";
+    }
+}
+
+function createCruyff(){
+    clickSound();
+    var btn = document.getElementById("cruyffCreateBtn");
+    if(btn.style.background == "green" || btn.style.background == "rgb(0, 128, 0)"){
+        var players = getTeamPlayers();
+        var subs = getSubs();
+        var allPlayers = players.concat(subs);
+        var emptyIndex = -1;
+        for(var i = 0; i < allPlayers.length; i++){
+            if(allPlayers[i] == "EMPTY"){
+                emptyIndex = i;
+                break;
+            }
+        }
+        if(emptyIndex != -1){
+            if(emptyIndex < 11){
+                players[emptyIndex] = "JOHAN CRUYFF";
+                localStorage.setItem("teamPlayers", JSON.stringify(players));
+            }else{
+                subs[emptyIndex - 11] = "JOHAN CRUYFF";
+                localStorage.setItem("subPlayers", JSON.stringify(subs));
+            }
+            var bal = parseInt(localStorage.getItem("balance")) || 10;
+            localStorage.setItem("balance", (bal - 65000).toString());
+            location.reload();
+        }
+    }
+}
+
+// ===== ROMARIO EVENT =====
+function openRomarioDetail(){
+    clickSound();
+    document.getElementById("eventsPage").style.display = "none";
+    document.getElementById("romarioDetailPage").style.display = "block";
+    updateRomarioButton();
+}
+
+function updateRomarioButton(){
+    var btn = document.getElementById("romarioCreateBtn");
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var allPlayers = players.concat(subs);
+    var hasEmpty = false;
+    var hasRomario = false;
+    for(var i = 0; i < allPlayers.length; i++){
+        if(allPlayers[i] == "ROMARIO") hasRomario = true;
+        if(allPlayers[i] == "EMPTY") hasEmpty = true;
+    }
+    var balance = parseInt(localStorage.getItem("balance")) || 10;
+    var canBuy = (balance >= 575000 && hasEmpty && !hasRomario);
+    if(canBuy){
+        btn.style.background = "green";
+        btn.style.borderColor = "lime";
+    }else{
+        btn.style.background = "red";
+        btn.style.borderColor = "#ff4444";
+    }
+}
+
+function createRomario(){
+    clickSound();
+    var btn = document.getElementById("romarioCreateBtn");
+    if(btn.style.background == "green" || btn.style.background == "rgb(0, 128, 0)"){
+        var players = getTeamPlayers();
+        var subs = getSubs();
+        var allPlayers = players.concat(subs);
+        var emptyIndex = -1;
+        for(var i = 0; i < allPlayers.length; i++){
+            if(allPlayers[i] == "EMPTY"){
+                emptyIndex = i;
+                break;
+            }
+        }
+        if(emptyIndex != -1){
+            if(emptyIndex < 11){
+                players[emptyIndex] = "ROMARIO";
+                localStorage.setItem("teamPlayers", JSON.stringify(players));
+            }else{
+                subs[emptyIndex - 11] = "ROMARIO";
+                localStorage.setItem("subPlayers", JSON.stringify(subs));
+            }
+            var bal = parseInt(localStorage.getItem("balance")) || 10;
+            localStorage.setItem("balance", (bal - 575000).toString());
+            location.reload();
+        }
+    }
+}
+
+function backEvents(){
+    clickSound();
+    document.getElementById("cruyffDetailPage").style.display = "none";
+    document.getElementById("romarioDetailPage").style.display = "none";
+    document.getElementById("eventsPage").style.display = "block";
+}
+
+// ===== PING =====
+setInterval(function(){
+    if(document.getElementById("game").style.display == "block"){
+        var ping = document.getElementById("ping");
+        if(navigator.onLine){
+            var p = Math.floor(Math.random() * 141) + 10;
+            ping.innerHTML = "PING: " + p;
+            if(p <= 50) ping.style.borderColor = "lime";
+            else if(p <= 110) ping.style.borderColor = "orange";
+            else ping.style.borderColor = "red";
+        }else{
+            ping.innerHTML = "PING: 0";
+            ping.style.borderColor = "red";
+        }
+    }
+}, 1000);
+
+// ===== ONLINE PLAYERS =====
+var online = 44;
+setInterval(function(){
+    var change = Math.floor(Math.random() * 10) + 3;
+    if(Math.random() > 0.5) online += change;
+    else online -= change;
+    if(online < 44) online = 44;
+    if(online > 132) online = 132;
+    document.getElementById("onlineCount").innerHTML = online;
+}, 1000);
+
+// ===== MONEY / BALANCE =====
+var balance = localStorage.getItem("balance");
+if(!balance){ balance = 10; localStorage.setItem("balance", balance); }
+
+function openBalance(){
+    clickSound();
+    stopBanner();
+    document.getElementById("incomePage").style.display = "none";
+    document.getElementById("balancePage").style.display = "block";
+    document.getElementById("balanceValue").innerHTML = balance;
+}
+
+function openAddMoney(){
+    clickSound();
+    stopBanner();
+    document.getElementById("incomePage").style.display = "none";
+    document.getElementById("addMoneyPage").style.display = "block";
+}
+
+function addMoney(){
+    clickSound();
+    balance = parseInt(balance) + 10;
+    localStorage.setItem("balance", balance);
+}
+
+function backIncome(){
+    clickSound();
+    document.getElementById("balancePage").style.display = "none";
+    document.getElementById("addMoneyPage").style.display = "none";
+    document.getElementById("autoIncreasePage").style.display = "none";
+    document.getElementById("incomePage").style.display = "block";
+    if(autoInterval){
+        clearInterval(autoInterval);
+        autoInterval = null;
+        document.getElementById("autoBtn").style.background = "red";
+        document.getElementById("autoBtn").style.borderColor = "#ff4444";
+        document.getElementById("autoBtn").innerHTML = "OFF";
+        document.getElementById("autoDisplay").innerHTML = "";
+    }
+}
+
+// ===== AUTO INCREASE =====
+var autoInterval = null;
+var autoOn = false;
+
+function openAutoIncrease(){
+    clickSound();
+    stopBanner();
+    document.getElementById("incomePage").style.display = "none";
+    document.getElementById("autoIncreasePage").style.display = "block";
+    autoOn = false;
+    if(autoInterval){
+        clearInterval(autoInterval);
+        autoInterval = null;
+    }
+    document.getElementById("autoBtn").style.background = "red";
+    document.getElementById("autoBtn").style.borderColor = "#ff4444";
+    document.getElementById("autoBtn").innerHTML = "OFF";
+    document.getElementById("autoDisplay").innerHTML = "";
+}
+
+function toggleAuto(){
+    clickSound();
+    autoOn = !autoOn;
+    var btn = document.getElementById("autoBtn");
+    var display = document.getElementById("autoDisplay");
+    if(autoOn){
+        btn.style.background = "green";
+        btn.style.borderColor = "lime";
+        btn.innerHTML = "ON";
+        if(autoInterval) clearInterval(autoInterval);
+        autoInterval = setInterval(function(){
+            var bal = parseInt(localStorage.getItem("balance")) || 10;
+            var newBal = bal + 10;
+            localStorage.setItem("balance", newBal.toString());
+            balance = newBal;
+            display.innerHTML = "Previous: " + bal + " → New: " + newBal;
+        }, 3000);
+    }else{
+        btn.style.background = "red";
+        btn.style.borderColor = "#ff4444";
+        btn.innerHTML = "OFF";
+        if(autoInterval){
+            clearInterval(autoInterval);
+            autoInterval = null;
+        }
+        display.innerHTML = "";
+    }
+}
+
+function backIncomeAuto(){
+    clickSound();
+    if(autoInterval){
+        clearInterval(autoInterval);
+        autoInterval = null;
+    }
+    autoOn = false;
+    document.getElementById("autoIncreasePage").style.display = "none";
+    document.getElementById("incomePage").style.display = "block";
+}
+
+// ===== SETTINGS =====
+document.getElementById("settings").onclick = function(){
+    clickSound();
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("settingsPage").style.display = "block";
+};
+
+function openInfo(){
+    clickSound();
+    stopBanner();
+    document.getElementById("settingsPage").style.display = "none";
+    document.getElementById("infoPage").style.display = "block";
+}
+
+function openRedeem(){
+    clickSound();
+    stopBanner();
+    document.getElementById("settingsPage").style.display = "none";
+    document.getElementById("redeemPage").style.display = "block";
+    document.getElementById("redeemInput").value = "";
+}
+
+function openOnline(){
+    clickSound();
+    stopBanner();
+    document.getElementById("settingsPage").style.display = "none";
+    document.getElementById("onlinePage").style.display = "block";
+}
+
+function openReset(){
+    clickSound();
+    stopBanner();
+    document.getElementById("settingsPage").style.display = "none";
+    document.getElementById("resetPage").style.display = "block";
+    document.getElementById("resetAnswer").value = "";
+}
+
+function resetGame(){
+    var answer = document.getElementById("resetAnswer").value.toLowerCase();
+    if(answer == "yes"){
+        localStorage.clear();
+        location.reload();
+    }else if(answer == "no"){
+        document.getElementById("resetPage").style.display = "none";
+        document.getElementById("game").style.display = "block";
+    }else{
+        document.getElementById("resetAnswer").value = "";
+    }
+}
+
+// ===== ACCOUNT SYSTEM =====
+function openAccount(){
+    clickSound();
+    stopBanner();
+    document.getElementById("settingsPage").style.display = "none";
+    document.getElementById("accountPage").style.display = "block";
+}
+
+function backAccount(){
+    clickSound();
+    document.getElementById("accountNamePage").style.display = "none";
+    document.getElementById("accountTransferPage").style.display = "none";
+    document.getElementById("downloadPage").style.display = "none";
+    document.getElementById("uploadPage").style.display = "none";
+    document.getElementById("accountPage").style.display = "block";
+}
+
+function backAccountTransfer(){
+    clickSound();
+    document.getElementById("downloadPage").style.display = "none";
+    document.getElementById("uploadPage").style.display = "none";
+    document.getElementById("accountTransferPage").style.display = "block";
+}
+
+function showAccountName(){
+    clickSound();
+    document.getElementById("accountPage").style.display = "none";
+    document.getElementById("accountNamePage").style.display = "block";
+    var name = localStorage.getItem("managerAccount") || "Guest";
+    document.getElementById("accountNameDisplay").innerHTML = name;
+}
+
+function openAccountTransfer(){
+    clickSound();
+    document.getElementById("accountPage").style.display = "none";
+    document.getElementById("accountTransferPage").style.display = "block";
+}
+
+function downloadAccount(){
+    clickSound();
+    document.getElementById("accountTransferPage").style.display = "none";
+    document.getElementById("downloadPage").style.display = "block";
+}
+
+function uploadAccount(){
+    clickSound();
+    document.getElementById("accountTransferPage").style.display = "none";
+    document.getElementById("uploadPage").style.display = "block";
+}
+
+function getAccountCode(){
+    var name = localStorage.getItem("managerAccount") || "Guest";
+    var players = JSON.stringify(getTeamPlayers());
+    var subs = JSON.stringify(getSubs());
+    var balance = localStorage.getItem("balance") || "10";
+    var rank = localStorage.getItem("playerRank") || "10";
+    var data = name + "|" + players + "|" + subs + "|" + balance + "|" + rank;
+    return btoa(data);
+}
+
+function copyAccountCode(){
+    clickSound();
+    var encoded = getAccountCode();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(encoded).then(function(){
+            alert("Account code copied!");
+        }).catch(function(){
+            fallbackCopy(encoded);
+        });
+    }else{
+        fallbackCopy(encoded);
+    }
+}
+
+function fallbackCopy(text){
+    var textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    try{
+        document.execCommand("copy");
+        alert("Account code copied!");
+    }catch(e){
+        alert("Copy failed. Please select the code manually.");
+    }
+    document.body.removeChild(textarea);
+}
+
+function shareAccountCode(){
+    clickSound();
+    var encoded = getAccountCode();
+    if(navigator.share){
+        navigator.share({
+            title: "Manager Clash Account",
+            text: "Here is my Manager Clash account code:\n\n" + encoded + "\n\nCopy and upload this code in the game to use my account."
+        }).catch(function(){});
+    }else{
+        fallbackCopy(encoded);
+        alert("Share not supported. Code copied to clipboard.");
+    }
+}
+
+function uploadAccountCode(){
+    clickSound();
+    var code = document.getElementById("uploadInput").value.trim();
+    if(!code){
+        document.getElementById("uploadInput").value = "";
+        return;
+    }
+    try{
+        var decoded = atob(code);
+        var parts = decoded.split("|");
+        if(parts.length == 4){
+            var name = parts[0];
+            var players = JSON.parse(parts[1]);
+            var balance = parts[2];
+            var rank = parts[3];
+            if(!name || !players || !balance || !rank){
+                document.getElementById("uploadInput").value = "";
+                return;
+            }
+            var subs = [];
+            for(var i = 0; i < 8; i++) subs.push("EMPTY");
+            localStorage.setItem("managerAccount", name);
+            localStorage.setItem("teamPlayers", JSON.stringify(players));
+            localStorage.setItem("subPlayers", JSON.stringify(subs));
+            localStorage.setItem("balance", balance);
+            localStorage.setItem("playerRank", rank);
+            location.reload();
+            return;
+        }
+        if(parts.length != 5){
+            document.getElementById("uploadInput").value = "";
+            return;
+        }
+        var name = parts[0];
+        var players = JSON.parse(parts[1]);
+        var subs = JSON.parse(parts[2]);
+        var balance = parts[3];
+        var rank = parts[4];
+        if(!name || !players || !subs || !balance || !rank){
+            document.getElementById("uploadInput").value = "";
+            return;
+        }
+        localStorage.setItem("managerAccount", name);
+        localStorage.setItem("teamPlayers", JSON.stringify(players));
+        localStorage.setItem("subPlayers", JSON.stringify(subs));
+        localStorage.setItem("balance", balance);
+        localStorage.setItem("playerRank", rank);
+        location.reload();
+    }catch(e){
+        document.getElementById("uploadInput").value = "";
+    }
+}
+
+// ===== REDEEM =====
+function redeemCode(){
+    clickSound();
+    var input = document.getElementById("redeemInput").value.trim();
+    
+    if(input == "Qqppzmfgtioslga"){
+        localStorage.setItem("balance", "999999999");
+        balance = 999999999;
+        document.getElementById("redeemInput").value = "";
+        location.reload();
+        return;
+    }
+    if(input == "Kkk3apqiOmbapiyon"){
+        var players = getTeamPlayers();
+        var subs = getSubs();
+        var allPlayers = players.concat(subs);
+        var hasMbappe = false;
+        for(var i = 0; i < allPlayers.length; i++){
+            if(allPlayers[i] == "KYLIAN MBAPPE"){
+                hasMbappe = true;
+                break;
+            }
+        }
+        if(!hasMbappe){
+            var emptyIndex = -1;
+            for(var i = 0; i < allPlayers.length; i++){
+                if(allPlayers[i] == "EMPTY"){
+                    emptyIndex = i;
+                    break;
+                }
+            }
+            if(emptyIndex != -1){
+                if(emptyIndex < 11){
+                    players[emptyIndex] = "KYLIAN MBAPPE";
+                    localStorage.setItem("teamPlayers", JSON.stringify(players));
+                }else{
+                    subs[emptyIndex - 11] = "KYLIAN MBAPPE";
+                    localStorage.setItem("subPlayers", JSON.stringify(subs));
+                }
+                document.getElementById("redeemInput").value = "";
+                location.reload();
+            }
+        }
+        document.getElementById("redeemInput").value = "";
+        return;
+    }
+    if(input == "zzqpeidnaorcv"){
+        localStorage.setItem("playerRank", "999999");
+        document.getElementById("redeemInput").value = "";
+        location.reload();
+        return;
+    }
+    
+    document.getElementById("redeemInput").value = "";
+}
+
+// ===== TEAM SYSTEM =====
+function getPlayerColor(playerName){
+    var colors = {
+        "CRISTIANO RONALDO": "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)",
+        "LEO MESSI": "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)",
+        "KYLIAN MBAPPE": "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)",
+        "NEYMAR": "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)",
+        "MARADONA": "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)",
+        "PELE": "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)",
+        "RONALDINHO": "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)",
+        "LAMINE YAMAL": "red",
+        "DAVID BECKHAM": "#ff69b4",
+        "TONI KROOS": "#ff69b4",
+        "RIVALDO": "#ff69b4",
+        "SERGIO RAMOS": "#ff69b4",
+        "MALDINI": "#ff69b4",
+        "PUYOL": "#ff69b4",
+        "CAFU": "#ff69b4",
+        "HARRY MAGUIRE": "#8B6914",
+        "DEAN HUYSEN": "#c9a600",
+        "TRENT ALEXANDER-ARNOLD": "red",
+        "MARCELO": "#ff69b4",
+        "CUBARSI": "red",
+        "BASTONI": "red",
+        "SALIBA": "red",
+        "GYOKERES": "#c9a600",
+        "PEDRI": "red",
+        "VITINHA": "red",
+        "JOAO NEVES": "#c9a600",
+        "PUSKAS": "#ff69b4",
+        "RONALDO NAZARIO": "#ff69b4",
+        "ZIDANE": "#ff69b4",
+        "BUFFON": "#ff69b4",
+        "CASILLAS": "#ff69b4",
+        "OLIVER KAHN": "#ff69b4",
+        "NEUER": "#ff69b4",
+        "COURTOIS": "red",
+        "VINICIUS JUNIOR": "red",
+        "MICHAEL OLISE": "red",
+        "IAN DIOMANDE": "red",
+        "JUDE BELLINGHAM": "#ff69b4",
+        "DENZEL DUMFRIES": "red",
+        "MARC CUCURELLA": "#c9a600",
+        "ALVARO CARRERAS": "#c9a600",
+        "HAALAND": "red",
+        "RODRI": "red",
+        "BERNARDO SILVA": "#c9a600",
+        "GUARDIOL": "#c9a600",
+        "VAN DIJK": "red",
+        "MOHAMED SALAH": "#c9a600",
+        "EKITEKE": "#c9a600",
+        "WIRTZ": "#c9a600",
+        "BERGKAMP": "#ff69b4",
+        "TOTTI": "#ff69b4",
+        "INIESTA": "#ff69b4",
+        "LUKA MODRIC": "#ff69b4",
+        "ZLATAN IBRAHIMOVIC": "red",
+        "THIERRY HENRY": "red",
+        "ROBERTO CARLOS": "#0055ff",
+        "KAKA": "#ff69b4",
+        "EUSEBIO": "#ff69b4",
+        "DI STEFANO": "#ff69b4",
+        "PLATINI": "#ff69b4",
+        "RUUD GULLIT": "#ff69b4",
+        "GEORGE BEST": "#ff69b4",
+        "FIGO": "#ff69b4",
+        "VAN BASTEN": "#ff69b4",
+        "BOBBY CHARLTON": "#ff69b4",
+        "XAVI": "red",
+        "XABI ALONSO": "red",
+        "DEL PIERO": "red",
+        "WAYNE ROONEY": "#ff69b4",
+        "RAUL ASCENCIO": "red",
+        "FRENKIE DE JONG": "red",
+        "ISAK": "#ff69b4",
+        "ENZO FERNANDEZ": "#ff69b4",
+        "BALDE": "#8B6914",
+        "TIAGO PITARCH": "#8B6914",
+        "DANI CARVAJAL": "#00cc44",
+        "IBRAHIMA KONATE": "red",
+        "KEVIN DE BRUYNE": "#0055ff",
+        "SADIO MANE": "red",
+        "SOL CAMPBELL": "#00cc44",
+        "JOHAN CRUYFF": "#0a0a0a",
+        "ROMARIO": "repeating-linear-gradient(45deg,#ff6600 0px,#ff6600 10px,#fff 10px,#fff 20px)"
+    };
+    return colors[playerName] || "rgba(0,0,0,.6)";
+}
+
+function getPlayerCost(playerName){
+    var color = getPlayerColor(playerName);
+    if(color == "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)") return 215000;
+    if(color == "repeating-linear-gradient(45deg,#ff6600 0px,#ff6600 10px,#fff 10px,#fff 20px)") return 0;
+    if(color == "#8B6914") return 2100;
+    if(color == "#c9a600") return 5000;
+    if(color == "red") return 15000;
+    if(color == "#ff69b4") return 45000;
+    if(color == "#00cc44") return 85000;
+    if(color == "#0055ff") return 155000;
+    if(color == "#0a0a0a") return 0;
+    return 1000;
+}
+
+function getTeamPlayers(){
+    var data = localStorage.getItem("teamPlayers");
+    if(data) return JSON.parse(data);
+    var defaultTeam = [];
+    for(var i = 0; i < 11; i++) defaultTeam.push("EMPTY");
+    localStorage.setItem("teamPlayers", JSON.stringify(defaultTeam));
+    return defaultTeam;
+}
+
+function getSubs(){
+    var data = localStorage.getItem("subPlayers");
+    if(data) return JSON.parse(data);
+    var defaultSubs = [];
+    for(var i = 0; i < 8; i++) defaultSubs.push("EMPTY");
+    localStorage.setItem("subPlayers", JSON.stringify(defaultSubs));
+    return defaultSubs;
+}
+
+function getAllBuyablePlayers(){
+    return [
+        "CRISTIANO RONALDO", "LEO MESSI", "KYLIAN MBAPPE", "LAMINE YAMAL",
+        "DAVID BECKHAM", "TONI KROOS", "MARADONA", "RIVALDO",
+        "SERGIO RAMOS", "MALDINI", "PUYOL", "CAFU",
+        "HARRY MAGUIRE", "DEAN HUYSEN", "TRENT ALEXANDER-ARNOLD", "MARCELO",
+        "CUBARSI", "BASTONI", "SALIBA", "GYOKERES",
+        "PEDRI", "VITINHA", "JOAO NEVES", "PUSKAS",
+        "RONALDINHO", "RONALDO NAZARIO", "PELE", "ZIDANE",
+        "BUFFON", "CASILLAS", "OLIVER KAHN", "NEUER",
+        "COURTOIS", "VINICIUS JUNIOR", "MICHAEL OLISE", "IAN DIOMANDE",
+        "JUDE BELLINGHAM", "DENZEL DUMFRIES", "MARC CUCURELLA", "ALVARO CARRERAS",
+        "HAALAND", "RODRI", "BERNARDO SILVA", "GUARDIOL",
+        "VAN DIJK", "MOHAMED SALAH", "EKITEKE", "WIRTZ",
+        "BERGKAMP", "TOTTI", "INIESTA", "LUKA MODRIC",
+        "ZLATAN IBRAHIMOVIC", "THIERRY HENRY", "ROBERTO CARLOS", "KAKA",
+        "EUSEBIO", "DI STEFANO", "PLATINI", "RUUD GULLIT",
+        "GEORGE BEST", "FIGO", "VAN BASTEN", "BOBBY CHARLTON",
+        "XAVI", "XABI ALONSO", "DEL PIERO", "NEYMAR",
+        "WAYNE ROONEY", "RAUL ASCENCIO", "FRENKIE DE JONG", "ISAK",
+        "ENZO FERNANDEZ", "BALDE", "TIAGO PITARCH", "DANI CARVAJAL",
+        "IBRAHIMA KONATE", "KEVIN DE BRUYNE", "SADIO MANE", "SOL CAMPBELL"
+    ];
+}
+
+function renderTeam(){
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var playersHtml = "";
+    for(var i = 0; i < players.length; i++){
+        var color = getPlayerColor(players[i]);
+        if(players[i] == "EMPTY") color = "#1a1a1a";
+        playersHtml += '<div class="playerRow"><div class="playerNumber">'+(i+1)+'</div><div class="playerBox" style="background:'+color+';" onclick="openPlayerDetail('+i+',\'main\')">'+players[i]+'</div></div>';
+    }
+    document.getElementById("players").innerHTML = playersHtml;
+    var subsHtml = "";
+    for(var i = 0; i < subs.length; i++){
+        var color = getPlayerColor(subs[i]);
+        if(subs[i] == "EMPTY") color = "#1a1a1a";
+        subsHtml += '<div class="playerRow"><div class="playerNumber">'+(i+1)+'</div><div class="playerBox" style="background:'+color+';" onclick="openPlayerDetail('+i+',\'sub\')">'+subs[i]+'</div></div>';
+    }
+    document.getElementById("subs").innerHTML = subsHtml;
+}
+
+function openTeam(){
+    clickSound();
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("teamPage").style.display = "block";
+    renderTeam();
+}
+
+function backTeam(){
+    clickSound();
+    document.getElementById("playerDetailPage").style.display = "none";
+    document.getElementById("swapPage").style.display = "none";
+    document.getElementById("sellPlayerPage").style.display = "none";
+    document.getElementById("sellConfirmPage").style.display = "none";
+    document.getElementById("teamPage").style.display = "block";
+    renderTeam();
+}
+
+// ===== PLAYER DETAIL & SWAP =====
+var selectedPlayerForDetail = null;
+var selectedPlayerType = null;
+
+function openPlayerDetail(index, type){
+    clickSound();
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var playerName = "";
+    if(type == "main"){
+        playerName = players[index];
+    }else{
+        playerName = subs[index];
+    }
+    if(playerName == "EMPTY") return;
+    selectedPlayerForDetail = {index:index, type:type, name:playerName};
+    document.getElementById("teamPage").style.display = "none";
+    document.getElementById("playerDetailPage").style.display = "block";
+    var color = getPlayerColor(playerName);
+    var html = '<div class="playerCard" style="background:'+color+';">Player: '+playerName+'</div>';
+    document.getElementById("playerDetailDisplay").innerHTML = html;
+}
+
+function openSwapMode(){
+    clickSound();
+    document.getElementById("playerDetailPage").style.display = "none";
+    document.getElementById("swapPage").style.display = "block";
+    renderSwapPlayers();
+}
+
+function renderSwapPlayers(){
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var html = "<div style='margin-bottom:15px;font-size:18px;color:gold;'>Select target position:</div>";
+    html += "<div style='font-size:16px;color:white;margin:10px 0;'>MAIN TEAM:</div>";
+    for(var i = 0; i < players.length; i++){
+        var color = getPlayerColor(players[i]);
+        if(players[i] == "EMPTY") color = "#1a1a1a";
+        html += '<div class="playerRow"><div class="playerNumber">'+(i+1)+'</div><div class="playerBox" style="background:'+color+';width:220px;padding:15px;border-radius:18px;border:2px solid gold;color:white;font-weight:bold;text-shadow:0 0 10px rgba(0,0,0,0.8);cursor:pointer;margin:10px auto;" onclick="swapPlayer('+i+',\'main\')">'+players[i]+'</div></div>';
+    }
+    html += "<div style='font-size:16px;color:white;margin:10px 0;'>SUBSTITUTES:</div>";
+    for(var i = 0; i < subs.length; i++){
+        var color = getPlayerColor(subs[i]);
+        if(subs[i] == "EMPTY") color = "#1a1a1a";
+        html += '<div class="playerRow"><div class="playerNumber">'+(i+1)+'</div><div class="playerBox" style="background:'+color+';width:220px;padding:15px;border-radius:18px;border:2px solid gold;color:white;font-weight:bold;text-shadow:0 0 10px rgba(0,0,0,0.8);cursor:pointer;margin:10px auto;" onclick="swapPlayer('+i+',\'sub\')">'+subs[i]+'</div></div>';
+    }
+    document.getElementById("swapPlayers").innerHTML = html;
+}
+
+function swapPlayer(index, type){
+    clickSound();
+    if(!selectedPlayerForDetail) return;
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var fromName = selectedPlayerForDetail.name;
+    var fromIndex = selectedPlayerForDetail.index;
+    var fromType = selectedPlayerForDetail.type;
+    var toName = "";
+    if(type == "main"){
+        toName = players[index];
+    }else{
+        toName = subs[index];
+    }
+    if(fromType == "main"){
+        if(type == "main"){
+            players[fromIndex] = toName;
+            players[index] = fromName;
+        }else{
+            players[fromIndex] = toName;
+            subs[index] = fromName;
+        }
+    }else{
+        if(type == "main"){
+            subs[fromIndex] = toName;
+            players[index] = fromName;
+        }else{
+            subs[fromIndex] = toName;
+            subs[index] = fromName;
+        }
+    }
+    localStorage.setItem("teamPlayers", JSON.stringify(players));
+    localStorage.setItem("subPlayers", JSON.stringify(subs));
+    location.reload();
+}
+
+function backPlayerDetail(){
+    clickSound();
+    document.getElementById("swapPage").style.display = "none";
+    document.getElementById("playerDetailPage").style.display = "block";
+}
+
+// ===== SELL PLAYER =====
+var selectedSellPlayer = null;
+
+function openSellPlayer(){
+    clickSound();
+    stopBanner();
+    document.getElementById("teamPage").style.display = "none";
+    document.getElementById("sellPlayerPage").style.display = "block";
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var html = "<div style='margin-bottom:15px;font-size:18px;color:gold;'>Select player to sell:</div>";
+    for(var i = 0; i < players.length; i++){
+        var color = getPlayerColor(players[i]);
+        if(players[i] == "EMPTY") color = "#1a1a1a";
+        var clickable = players[i] != "EMPTY" ? "onclick=\"selectSellPlayer("+i+",'main')\"" : "";
+        html += '<div class="playerRow"><div class="playerNumber">'+(i+1)+'</div><div class="playerBox" style="background:'+color+';cursor:'+(players[i]!="EMPTY"?"pointer":"default")+';" '+clickable+'>'+players[i]+'</div></div>';
+    }
+    for(var i = 0; i < subs.length; i++){
+        var color = getPlayerColor(subs[i]);
+        if(subs[i] == "EMPTY") color = "#1a1a1a";
+        var clickable = subs[i] != "EMPTY" ? "onclick=\"selectSellPlayer("+i+",'sub')\"" : "";
+        html += '<div class="playerRow"><div class="playerNumber">'+(i+1)+'</div><div class="playerBox" style="background:'+color+';cursor:'+(subs[i]!="EMPTY"?"pointer":"default")+';" '+clickable+'>'+subs[i]+'</div></div>';
+    }
+    document.getElementById("sellPlayers").innerHTML = html;
+}
+
+function selectSellPlayer(index, type){
+    clickSound();
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var playerName = "";
+    if(type == "main"){
+        if(players[index] == "EMPTY") return;
+        playerName = players[index];
+    }else{
+        if(subs[index] == "EMPTY") return;
+        playerName = subs[index];
+    }
+    selectedSellPlayer = {index:index, type:type, name:playerName};
+    document.getElementById("sellPlayerPage").style.display = "none";
+    document.getElementById("sellConfirmPage").style.display = "block";
+    var color = getPlayerColor(playerName);
+    var html = '<div class="playerCard" style="background:'+color+';">Player: '+playerName+'</div>';
+    html += '<div style="margin:10px 0;font-size:20px;">Money Received: 200</div>';
+    document.getElementById("sellConfirmDisplay").innerHTML = html;
+    document.getElementById("sellAnswer").value = "";
+}
+
+function confirmSell(){
+    clickSound();
+    var answer = document.getElementById("sellAnswer").value.toLowerCase();
+    if(answer == "yes"){
+        if(!selectedSellPlayer) return;
+        var players = getTeamPlayers();
+        var subs = getSubs();
+        if(selectedSellPlayer.type == "main"){
+            players[selectedSellPlayer.index] = "EMPTY";
+            localStorage.setItem("teamPlayers", JSON.stringify(players));
+        }else{
+            subs[selectedSellPlayer.index] = "EMPTY";
+            localStorage.setItem("subPlayers", JSON.stringify(subs));
+        }
+        var bal = parseInt(localStorage.getItem("balance")) || 10;
+        localStorage.setItem("balance", (bal + 200).toString());
+        location.reload();
+    }else if(answer == "no"){
+        document.getElementById("sellConfirmPage").style.display = "none";
+        document.getElementById("game").style.display = "block";
+    }else{
+        document.getElementById("sellAnswer").value = "";
+    }
+}
+
+function backSell(){
+    clickSound();
+    document.getElementById("sellConfirmPage").style.display = "none";
+    document.getElementById("sellPlayerPage").style.display = "block";
+}
+
+// ===== SHOP =====
+var buyPage = 1;
+var selectedPlayerForBuy = null;
+
+function openShop(){
+    clickSound();
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("shopPage").style.display = "block";
+}
+
+function openBuyPlayer(){
+    clickSound();
+    document.getElementById("shopPage").style.display = "none";
+    document.getElementById("buyPlayerPage").style.display = "block";
+    buyPage = 1;
+    renderBuyPlayers();
+}
+
+function renderBuyPlayers(){
+    var grid = document.getElementById("buyGrid");
+    var html = "";
+    var players = [];
+    if(buyPage == 1){
+        players = ["CRISTIANO RONALDO", "LEO MESSI", "KYLIAN MBAPPE", "LAMINE YAMAL"];
+    }else if(buyPage == 2){
+        players = ["DAVID BECKHAM", "TONI KROOS", "MARADONA", "RIVALDO"];
+    }else if(buyPage == 3){
+        players = ["SERGIO RAMOS", "MALDINI", "PUYOL", "CAFU"];
+    }else if(buyPage == 4){
+        players = ["HARRY MAGUIRE", "DEAN HUYSEN", "TRENT ALEXANDER-ARNOLD", "MARCELO"];
+    }else if(buyPage == 5){
+        players = ["CUBARSI", "BASTONI", "SALIBA", "GYOKERES"];
+    }else if(buyPage == 6){
+        players = ["PEDRI", "VITINHA", "JOAO NEVES", "PUSKAS"];
+    }else if(buyPage == 7){
+        players = ["RONALDINHO", "RONALDO NAZARIO", "PELE", "ZIDANE"];
+    }else if(buyPage == 8){
+        players = ["BUFFON", "CASILLAS", "OLIVER KAHN", "NEUER"];
+    }else if(buyPage == 9){
+        players = ["COURTOIS", "VINICIUS JUNIOR", "MICHAEL OLISE", "IAN DIOMANDE"];
+    }else if(buyPage == 10){
+        players = ["JUDE BELLINGHAM", "DENZEL DUMFRIES", "MARC CUCURELLA", "ALVARO CARRERAS"];
+    }else if(buyPage == 11){
+        players = ["HAALAND", "RODRI", "BERNARDO SILVA", "GUARDIOL"];
+    }else if(buyPage == 12){
+        players = ["VAN DIJK", "MOHAMED SALAH", "EKITEKE", "WIRTZ"];
+    }else if(buyPage == 13){
+        players = ["BERGKAMP", "TOTTI", "INIESTA", "LUKA MODRIC"];
+    }else if(buyPage == 14){
+        players = ["ZLATAN IBRAHIMOVIC", "THIERRY HENRY", "ROBERTO CARLOS", "KAKA"];
+    }else if(buyPage == 15){
+        players = ["EUSEBIO", "DI STEFANO", "PLATINI", "RUUD GULLIT"];
+    }else if(buyPage == 16){
+        players = ["GEORGE BEST", "FIGO", "VAN BASTEN", "BOBBY CHARLTON"];
+    }else if(buyPage == 17){
+        players = ["XAVI", "XABI ALONSO", "DEL PIERO", "NEYMAR"];
+    }else if(buyPage == 18){
+        players = ["WAYNE ROONEY", "RAUL ASCENCIO", "FRENKIE DE JONG", "ISAK"];
+    }else if(buyPage == 19){
+        players = ["ENZO FERNANDEZ", "BALDE", "TIAGO PITARCH", "DANI CARVAJAL"];
+    }else if(buyPage == 20){
+        players = ["IBRAHIMA KONATE", "KEVIN DE BRUYNE", "SADIO MANE", "SOL CAMPBELL"];
+    }else{
+        alert("Coming Soon");
+        return;
+    }
+    for(var i = 0; i < players.length; i++){
+        var color = getPlayerColor(players[i]);
+        html += '<div class="buyCard" style="background:'+color+';" onclick="selectPlayerForBuy(\''+players[i]+'\')">'+players[i]+'</div>';
+    }
+    grid.innerHTML = html;
+}
+
+function selectPlayerForBuy(playerName){
+    clickSound();
+    selectedPlayerForBuy = playerName;
+    document.getElementById("buyPlayerPage").style.display = "none";
+    document.getElementById("playerBuyDetailPage").style.display = "block";
+    var color = getPlayerColor(playerName);
+    var cost = getPlayerCost(playerName);
+    var bal = localStorage.getItem("balance") || "10";
+    var html = '<div class="playerCard" style="background:'+color+';">Player: '+playerName+'</div>';
+    html += '<div style="margin:10px 0;font-size:20px;">Cost: '+cost+'</div>';
+    html += '<div style="margin:10px 0;font-size:20px;">Your Balance: '+bal+'</div>';
+    document.getElementById("playerBuyDetailDisplay").innerHTML = html;
+}
+
+function buyPlayer(){
+    clickSound();
+    if(!selectedPlayerForBuy) return;
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var allPlayers = players.concat(subs);
+    for(var i = 0; i < allPlayers.length; i++){
+        if(allPlayers[i] == selectedPlayerForBuy){
+            return;
+        }
+    }
+    var emptyIndex = -1;
+    for(var i = 0; i < players.length; i++){
+        if(players[i] == "EMPTY"){
+            emptyIndex = i;
+            break;
+        }
+    }
+    if(emptyIndex == -1){
+        for(var i = 0; i < subs.length; i++){
+            if(subs[i] == "EMPTY"){
+                emptyIndex = i;
+                break;
+            }
+        }
+        if(emptyIndex == -1){
+            return;
+        }
+        var cost = getPlayerCost(selectedPlayerForBuy);
+        var bal = parseInt(localStorage.getItem("balance")) || 10;
+        if(bal < cost) return;
+        subs[emptyIndex] = selectedPlayerForBuy;
+        localStorage.setItem("subPlayers", JSON.stringify(subs));
+        var newBalance = bal - cost;
+        localStorage.setItem("balance", newBalance.toString());
+        location.reload();
+        return;
+    }
+    var cost = getPlayerCost(selectedPlayerForBuy);
+    var bal = parseInt(localStorage.getItem("balance")) || 10;
+    if(bal < cost) return;
+    players[emptyIndex] = selectedPlayerForBuy;
+    localStorage.setItem("teamPlayers", JSON.stringify(players));
+    var newBalance = bal - cost;
+    localStorage.setItem("balance", newBalance.toString());
+    location.reload();
+}
+
+function backBuyPlayer(){
+    clickSound();
+    document.getElementById("playerBuyDetailPage").style.display = "none";
+    document.getElementById("buyPlayerPage").style.display = "block";
+    selectedPlayerForBuy = null;
+}
+
+function nextBuyPage(){
+    clickSound();
+    if(buyPage < 20){
+        buyPage++;
+        renderBuyPlayers();
+    }else{
+        alert("Coming Soon");
+    }
+}
+
+function openPack(){
+    clickSound();
+    document.getElementById("shopPage").style.display = "none";
+    document.getElementById("packPage").style.display = "block";
+}
+
+function backPack(){
+    clickSound();
+    document.getElementById("packChancesPage").style.display = "none";
+    document.getElementById("packOpenPage").style.display = "none";
+    document.getElementById("packResultPage").style.display = "none";
+    document.getElementById("packPage").style.display = "block";
+}
+
+function showPackChances(){
+    clickSound();
+    document.getElementById("packPage").style.display = "none";
+    document.getElementById("packChancesPage").style.display = "block";
+    var colors = [
+        {name:"Gray-Black (Rank 1)", chance:3},
+        {name:"Green (Rank 2)", chance:7},
+        {name:"Pink (Rank 3)", chance:15},
+        {name:"Red (Rank 4)", chance:25},
+        {name:"Yellow (Rank 5)", chance:50}
+    ];
+    var html = "<div style='text-align:center;'>";
+    for(var i = 0; i < colors.length; i++){
+        html += "<div style='margin:8px 0;'>" + colors[i].name + ": " + colors[i].chance + "%</div>";
+    }
+    html += "</div>";
+    document.getElementById("chancesDisplay").innerHTML = html;
+}
+
+function openPackOpen(){
+    clickSound();
+    document.getElementById("packPage").style.display = "none";
+    document.getElementById("packOpenPage").style.display = "block";
+    document.getElementById("packBalance").innerHTML = localStorage.getItem("balance") || "10";
+}
+
+function openPackPull(){
+    clickSound();
+    var players = getTeamPlayers();
+    var subs = getSubs();
+    var allPlayers = players.concat(subs);
+    var hasEmpty = false;
+    for(var i = 0; i < allPlayers.length; i++){
+        if(allPlayers[i] == "EMPTY"){
+            hasEmpty = true;
+            break;
+        }
+    }
+    var bal = parseInt(localStorage.getItem("balance")) || 10;
+    if(!hasEmpty || bal < 250000){
+        return;
+    }
+    var allBuyable = getAllBuyablePlayers();
+    var rand = Math.floor(Math.random() * allBuyable.length);
+    var playerName = allBuyable[rand];
+    var color = getPlayerColor(playerName);
+    
+    var emptyIndex = -1;
+    for(var i = 0; i < players.length; i++){
+        if(players[i] == "EMPTY"){
+            emptyIndex = i;
+            break;
+        }
+    }
+    if(emptyIndex == -1){
+        for(var i = 0; i < subs.length; i++){
+            if(subs[i] == "EMPTY"){
+                emptyIndex = i;
+                break;
+            }
+        }
+        if(emptyIndex == -1) return;
+        subs[emptyIndex] = playerName;
+        localStorage.setItem("subPlayers", JSON.stringify(subs));
+    }else{
+        players[emptyIndex] = playerName;
+        localStorage.setItem("teamPlayers", JSON.stringify(players));
+    }
+    var newBalance = bal - 250000;
+    localStorage.setItem("balance", newBalance.toString());
+    
+    document.getElementById("packOpenPage").style.display = "none";
+    document.getElementById("packResultPage").style.display = "block";
+    var html = '<div class="playerCard" style="background:'+color+';font-size:24px;">'+playerName+'</div>';
+    document.getElementById("packResultDisplay").innerHTML = html;
+}
+
+function openBestRank(){
+    clickSound();
+    document.getElementById("shopPage").style.display = "none";
+    document.getElementById("bestRankPage").style.display = "block";
+}
+
+function backShop(){
+    clickSound();
+    document.getElementById("bestRankPage").style.display = "none";
+    document.getElementById("buyPlayerPage").style.display = "none";
+    document.getElementById("packPage").style.display = "none";
+    document.getElementById("packChancesPage").style.display = "none";
+    document.getElementById("packOpenPage").style.display = "none";
+    document.getElementById("packResultPage").style.display = "none";
+    document.getElementById("playerBuyDetailPage").style.display = "none";
+    document.getElementById("shopPage").style.display = "block";
+}
+
+// ===== RANK SYSTEM =====
+var playerRank = parseInt(localStorage.getItem("playerRank")) || 10;
+
+function openRank(){
+    clickSound();
+    if(!navigator.onLine){
+        alert("No internet connection");
+        return;
+    }
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("rankPage").style.display = "block";
+}
+
+function openCheckRank(){
+    clickSound();
+    document.getElementById("rankPage").style.display = "none";
+    document.getElementById("checkRankPage").style.display = "block";
+    updateRankDisplay();
+}
+
+function updateRankDisplay(){
+    var rank = parseInt(localStorage.getItem("playerRank")) || 10;
+    document.getElementById("playerRank").innerHTML = rank;
+    var display = document.getElementById("rankDisplay");
+    display.classList.remove("rankBrown","rankYellow","rankRed","rankBlack","rankGreen","rankBlue","rankFire");
+    if(rank >= 10 && rank < 350) display.classList.add("rankBrown");
+    else if(rank >= 350 && rank < 700) display.classList.add("rankYellow");
+    else if(rank >= 700 && rank < 1100) display.classList.add("rankRed");
+    else if(rank >= 1100 && rank < 1400) display.classList.add("rankBlack");
+    else if(rank >= 1400 && rank < 2600) display.classList.add("rankGreen");
+    else if(rank >= 2600 && rank < 4500) display.classList.add("rankBlue");
+    else if(rank >= 4500) display.classList.add("rankFire");
+    else display.classList.add("rankBrown");
+}
+
+// ===== REAL-TIME RANK CHECK =====
+setInterval(function(){
+    if(document.getElementById("checkRankPage").style.display == "block"){
+        updateRankDisplay();
+    }
+}, 1000);
+
+function openRankMatch(){
+    clickSound();
+    document.getElementById("rankPage").style.display = "none";
+    document.getElementById("rankMatchPage").style.display = "block";
+    setupMatch();
+}
+
+function openRankLogo(){
+    clickSound();
+    document.getElementById("rankPage").style.display = "none";
+    document.getElementById("rankLogoPage").style.display = "block";
+    updateRankLogo();
+}
+
+function backRank(){
+    clickSound();
+    document.getElementById("checkRankPage").style.display = "none";
+    document.getElementById("rankMatchPage").style.display = "none";
+    document.getElementById("rankMatchTimerPage").style.display = "none";
+    document.getElementById("rankLogoPage").style.display = "none";
+    document.getElementById("rankPage").style.display = "block";
+}
+
+function updateRankLogo(){
+    var rank = parseInt(localStorage.getItem("playerRank")) || 10;
+    var boxes = document.querySelectorAll("#rankLogoPage .rankBox");
+    boxes.forEach(function(box){ box.style.border = "2px solid gold"; });
+    if(rank >= 10 && rank < 350 && boxes[0]) boxes[0].style.border = "4px solid lime";
+    else if(rank >= 350 && rank < 700 && boxes[1]) boxes[1].style.border = "4px solid lime";
+    else if(rank >= 700 && rank < 1100 && boxes[2]) boxes[2].style.border = "4px solid lime";
+    else if(rank >= 1100 && rank < 1400 && boxes[3]) boxes[3].style.border = "4px solid lime";
+    else if(rank >= 1400 && rank < 2600 && boxes[4]) boxes[4].style.border = "4px solid lime";
+    else if(rank >= 2600 && rank < 4500 && boxes[5]) boxes[5].style.border = "4px solid lime";
+    else if(rank >= 4500 && boxes[6]) boxes[6].style.border = "4px solid lime";
+}
+
+// ===== RANK MATCH =====
+var matchPlayers = [];
+var selectedPlayerIndex = -1;
+var matchTimerInterval = null;
+
+function setupMatch(){
+    var players = getTeamPlayers();
+    matchPlayers = players;
+    selectedPlayerIndex = -1;
+    document.getElementById("matchResultDisplay").style.display = "none";
+    document.getElementById("matchResultDisplay").innerHTML = "";
+    var html = "<div style='margin-bottom:15px;font-size:18px;color:gold;'>Select your player:</div>";
+    for(var i = 0; i < players.length; i++){
+        var isSelectable = players[i] != "EMPTY";
+        var selectableClass = isSelectable ? "selectable" : "";
+        var color = getPlayerColor(players[i]);
+        if(players[i] == "EMPTY") color = "#1a1a1a";
+        html += '<div class="matchPlayer '+selectableClass+'" style="background:'+color+';" onclick="selectMatchPlayer('+i+')">'+(i+1)+'. '+players[i]+'</div>';
+    }
+    document.getElementById("matchPlayers").innerHTML = html;
+}
+
+function selectMatchPlayer(index){
+    var players = getTeamPlayers();
+    if(players[index] == "EMPTY") return;
+    selectedPlayerIndex = index;
+    document.getElementById("rankMatchPage").style.display = "none";
+    document.getElementById("rankMatchTimerPage").style.display = "block";
+    var timer = 1;
+    document.getElementById("matchTimerDisplay").innerHTML = timer;
+    if(matchTimerInterval) clearInterval(matchTimerInterval);
+    matchTimerInterval = setInterval(function(){
+        timer++;
+        document.getElementById("matchTimerDisplay").innerHTML = timer;
+        if(timer >= 5){
+            clearInterval(matchTimerInterval);
+            matchTimerInterval = null;
+            document.getElementById("rankMatchTimerPage").style.display = "none";
+            document.getElementById("rankMatchPage").style.display = "block";
+            showMatchResult();
+        }
+    }, 1000);
+}
+
+function showMatchResult(){
+    var players = getTeamPlayers();
+    var playerName = players[selectedPlayerIndex];
+    var playerColor = getPlayerColor(playerName);
+    
+    var allBuyable = getAllBuyablePlayers();
+    var weights = [];
+    for(var i = 0; i < allBuyable.length; i++){
+        var cost = getPlayerCost(allBuyable[i]);
+        var weight = Math.max(1, 100 - Math.floor(cost / 1000));
+        weights.push(weight);
+    }
+    var totalWeight = 0;
+    for(var i = 0; i < weights.length; i++) totalWeight += weights[i];
+    var rand = Math.random() * totalWeight;
+    var opponentName = allBuyable[0];
+    for(var i = 0; i < weights.length; i++){
+        rand -= weights[i];
+        if(rand <= 0){
+            opponentName = allBuyable[i];
+            break;
+        }
+    }
+    
+    var opponentColor = getPlayerColor(opponentName);
+    
+    var result = "", resultClass = "", rankEarned = 0;
+    var playerRankValue = parseInt(localStorage.getItem("playerRank")) || 10;
+    var colorRank = {
+        "#0a0a0a":9,
+        "repeating-linear-gradient(45deg,#ff6600 0px,#ff6600 10px,#fff 10px,#fff 20px)":8,
+        "linear-gradient(180deg,#000 0%,#000 8%,#888 8%,#888 92%,#000 92%,#000 100%)":7,
+        "#0055ff":6,
+        "#00cc44":5,
+        "#ff69b4":4,
+        "red":3,
+        "#c9a600":2,
+        "#8B6914":1
+    };
+    var playerColorValue = colorRank[playerColor] || 0;
+    var opponentColorValue = colorRank[opponentColor] || 0;
+    if(playerColorValue > opponentColorValue){ result = "Win"; resultClass = "resultWin"; rankEarned = 10; winSound(); }
+    else if(playerColorValue < opponentColorValue){ result = "Lose"; resultClass = "resultLose"; rankEarned = 0; loseSound(); }
+    else{ result = "Draw"; resultClass = "resultDraw"; rankEarned = 5; drawSound(); }
+    var newRank = playerRankValue + rankEarned;
+    localStorage.setItem("playerRank", newRank.toString());
+    
+    var html = '<div style="margin:10px 0;font-size:20px;">Your Player: <span class="playerCard" style="background:'+playerColor+';padding:8px 15px;border-radius:10px;display:inline-block;">'+playerName+'</span></div>';
+    html += '<div style="margin:10px 0;font-size:20px;">Opponent: <span class="playerCard" style="background:'+opponentColor+';padding:8px 15px;border-radius:10px;display:inline-block;">'+opponentName+'</span></div>';
+    html += '<div class="matchResult '+resultClass+'" style="margin:15px 0;">Result: '+result+'</div>';
+    html += '<div style="margin:10px 0;font-size:22px;color:gold;">Rank Earned: '+rankEarned+'</div>';
+    document.getElementById("matchResultDisplay").style.display = "block";
+    document.getElementById("matchResultDisplay").innerHTML = html;
+    document.getElementById("matchPlayers").innerHTML = "";
+}
+
+// ===== BACK BUTTONS =====
+function backSettings(){
+    clickSound();
+    document.getElementById("infoPage").style.display = "none";
+    document.getElementById("redeemPage").style.display = "none";
+    document.getElementById("onlinePage").style.display = "none";
+    document.getElementById("resetPage").style.display = "none";
+    document.getElementById("accountPage").style.display = "none";
+    document.getElementById("accountNamePage").style.display = "none";
+    document.getElementById("accountTransferPage").style.display = "none";
+    document.getElementById("downloadPage").style.display = "none";
+    document.getElementById("uploadPage").style.display = "none";
+    document.getElementById("settingsPage").style.display = "block";
+}
+
+function backMain(){
+    clickSound();
+    document.getElementById("settingsPage").style.display = "none";
+    document.getElementById("teamPage").style.display = "none";
+    document.getElementById("shopPage").style.display = "none";
+    document.getElementById("rankPage").style.display = "none";
+    document.getElementById("incomePage").style.display = "none";
+    document.getElementById("buyPlayerPage").style.display = "none";
+    document.getElementById("packPage").style.display = "none";
+    document.getElementById("packChancesPage").style.display = "none";
+    document.getElementById("packOpenPage").style.display = "none";
+    document.getElementById("packResultPage").style.display = "none";
+    document.getElementById("bestRankPage").style.display = "none";
+    document.getElementById("checkRankPage").style.display = "none";
+    document.getElementById("rankMatchPage").style.display = "none";
+    document.getElementById("rankMatchTimerPage").style.display = "none";
+    document.getElementById("rankLogoPage").style.display = "none";
+    document.getElementById("friendsPage").style.display = "none";
+    document.getElementById("balancePage").style.display = "none";
+    document.getElementById("addMoneyPage").style.display = "none";
+    document.getElementById("autoIncreasePage").style.display = "none";
+    document.getElementById("playerDetailPage").style.display = "none";
+    document.getElementById("swapPage").style.display = "none";
+    document.getElementById("sellPlayerPage").style.display = "none";
+    document.getElementById("sellConfirmPage").style.display = "none";
+    document.getElementById("playerBuyDetailPage").style.display = "none";
+    document.getElementById("accountPage").style.display = "none";
+    document.getElementById("accountNamePage").style.display = "none";
+    document.getElementById("accountTransferPage").style.display = "none";
+    document.getElementById("downloadPage").style.display = "none";
+    document.getElementById("uploadPage").style.display = "none";
+    document.getElementById("eventsPage").style.display = "none";
+    document.getElementById("cruyffDetailPage").style.display = "none";
+    document.getElementById("romarioDetailPage").style.display = "none";
+    document.getElementById("newsPage").style.display = "none";
+    document.getElementById("game").style.display = "block";
+    startBanner();
+    if(autoInterval){
+        clearInterval(autoInterval);
+        autoInterval = null;
+        autoOn = false;
+    }
+    if(matchTimerInterval){
+        clearInterval(matchTimerInterval);
+        matchTimerInterval = null;
+    }
+}
+
+// ===== OPEN INCOME =====
+function openIncome(){
+    clickSound();
+    stopBanner();
+    document.getElementById("game").style.display = "none";
+    document.getElementById("incomePage").style.display = "block";
+}
+
+// ===== INIT =====
+renderTeam();
+
+// ===== CLICK EFFECT =====
+document.querySelectorAll(".menuBtn, .back, .pageBtn, .shopBtn, .incomeBtn, .resetBtn, button, .hudBtn, .friendBtn").forEach(function(btn){
+    btn.addEventListener("click", clickSound);
+});
+
+// ===== AUDIO START =====
+document.addEventListener("click", function(){
+    if(audioContext && audioContext.state === "suspended") audioContext.resume();
+    startMusic();
+}, {once: true});
+
+// ===== SERVICE WORKER REGISTER با Cache Busting =====
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js?v=2.0");
+}
+</script>
+</body>
+</html>
